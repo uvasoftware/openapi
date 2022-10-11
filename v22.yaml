@@ -1,0 +1,359 @@
+openapi: 3.0.0
+info:
+  title: Scanii Content Identification API
+  description: |
+    API for the [scanii.com](https://scanii.com) content identification service.
+
+    Notable changes from previous version:
+    * Addition of a location argument to synchronous calls in our Files resources
+
+    Please note that to use this API you must first signup for scanii.com and create an API key.
+  version: 2.2.0
+servers:
+  - url: https://api-us1.scanii.com/v2.2
+    description: Virginia/USA processing region
+  - url: https://api-eu1.scanii.com/v2.2
+    description: Dublin/Ireland processing region
+  - url: https://api-eu2.scanii.com/v2.2
+    description: London/United Kingdom processing region
+  - url: https://api-ap1.scanii.com/v2.2
+    description: Sydney/Australia processing region
+  - url: https://api-ap2.scanii.com/v2.2
+    description: Singapore/Singapore processing region
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        creation_date:
+          type: string
+          format: iso8601
+        last_login:
+          type: string
+          format: iso8601
+    ApiKey:
+      type: object
+      properties:
+        active:
+          type: boolean
+        detection_categories_enabled:
+          type: array
+          items:
+            type: string
+        last_seen_date:
+          type: string
+          format: iso8601
+        creation_date:
+          type: string
+          format: iso8601
+        tags:
+          type: array
+          items:
+            type: string
+    ErrorResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: true
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        error:
+          type: string
+          nullable: true
+    ProcessingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        checksum:
+          type: string
+        content_length:
+          type: number
+        findings:
+          type: array
+          items:
+            type: string
+        creation_date:
+          type: string
+          format: iso8601
+        content_type:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+    AccountInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        balance:
+          type: number
+        starting_balance:
+          type: number
+        billing_email:
+          type: string
+        subscription:
+          type: string
+        creation_date:
+          type: string
+          format: iso8601
+        modification_date:
+          type: string
+          format: iso8601
+        users:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/User'
+        keys:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ApiKey'
+
+    Metadata:
+      type: object
+      nullable: false
+      description: "Set of key/value pairs that you can attach to an object using the structure: metadata[$NAME]=$VALE"
+      additionalProperties:
+        type: string
+        maxLength: 30
+  securitySchemes:
+    token:
+      type: http
+      scheme: basic
+security:
+  - token: [ ]
+paths:
+  /ping:
+    get:
+      summary: Test resource suitable for API credential validation
+      tags:
+        - General
+      responses:
+        '200': # status code
+          description: Validates that API credentials are working
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  key:
+                    type: string
+                    description: Returns the public key used
+  /account.json:
+    get:
+      summary: Retrieves account related information-
+      tags:
+        - General
+      responses:
+        '200': # status code
+          description: Validates that API credentials are working
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountInfo'
+
+  /files/{id}:
+    get:
+      summary: Retrieves a previously created processing result
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Processing id
+      tags:
+        - Files
+      responses:
+        '200': # status code
+          description: Retrieves a processing result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingResponse'
+  /files:
+    post:
+      summary: Submits content for processing
+      description: Location and file parameters are mutually exclusive
+      tags:
+        - Files
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                location:
+                  description: URL to fetch and analyze
+                  type: string
+                file:
+                  description: File to analyze
+                  type: string
+                  format: binary
+                callback:
+                  description: Callback URL to notify once processing is completed
+                  type: string
+                metadata:
+                  $ref: '#/components/schemas/Metadata'
+      responses:
+        '200': # status code
+          description: Retrieves a processing result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Your API keys cannot be used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: Content submitted for processing is too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /files/async:
+    post:
+      summary: Submits content for processing asynchronously
+      description: The purpose of this endpoint is to allow content to be submitted for processing without blocking the callee. This also implies the callee must lookup the result using our lookup endpoint, or wire in a callback webhook.
+      tags:
+        - Files
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  description: File to analyze
+                  type: string
+                  format: binary
+                callback:
+                  description: Callback URL to notify once processing is completed
+                  type: string
+                metadata:
+                  $ref: '#/components/schemas/Metadata'
+      responses:
+        '202':
+          description: Retrieves a processing result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /files/fetch:
+    post:
+      summary: Submits a URL for processing asynchronously
+      description: Companion to our async endpoint, this allows for synchronous
+      tags:
+        - Files
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  description: File to analyze
+                  type: string
+                  format: binary
+                callback:
+                  description: Callback URL to notify once processing is completed
+                  type: string
+                metadata:
+                  $ref: '#/components/schemas/Metadata'
+      responses:
+        '202':
+          description: Retrieves a processing result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/tokens/{id}:
+    get:
+      summary: Retrieves a previously created token
+      description: |
+        Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Auth token id
+      tags:
+        - Authentication Tokens
+      responses:
+        '200': # status code
+          description: Retrieves a previously created token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  creation_date:
+                    type: string
+                  expiration_date:
+                    type: string
+    delete:
+      summary: Deletes a previously created token
+      description: |
+        Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Processing id
+      tags:
+        - Authentication Tokens
+      responses:
+        '204': # status code
+          description: Token successfully deleted
+  /auth/tokens:
+    post:
+      summary: Creates a temporary authentication token
+      tags:
+        - Authentication Tokens
+      responses:
+        '200': # status code
+          description: Retrieves a processing result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  creation_date:
+                    type: string
+                  expiration_date:
+                    type: string
+
