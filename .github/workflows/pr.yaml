@@ -1,0 +1,11 @@
+on: pull_request
+jobs:
+  production:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: nwestfall/openapi-action@v1.0.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./src/v22.yaml
