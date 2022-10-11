@@ -1,0 +1,7 @@
+on: pull_request
+jobs:
+  - name: Lint V22
+  - uses: nwestfall/openapi-action@v1.0.2
+    with:
+      github_token: ${{ secrets.GITHUB_TOKEN }}
+      file: ./v22.yaml

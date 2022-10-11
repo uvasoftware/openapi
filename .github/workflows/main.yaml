@@ -23,7 +23,7 @@ jobs:
         uses: Legion2/swagger-ui-action@v1
         with:
           output: swagger-ui
-          spec-file: v22.yaml
+          spec-file: src/v22.yaml
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
