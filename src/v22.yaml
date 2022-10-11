@@ -1,6 +1,9 @@
 openapi: 3.0.0
 info:
   title: Scanii Content Identification API
+  license: 
+    name: Apache-2.0
+    url: https://github.com/uvasoftware/openapi/blob/main/LICENSE
   description: |
     API for the [scanii.com](https://scanii.com) content identification service.
 
