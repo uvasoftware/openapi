@@ -132,7 +132,9 @@ security:
 paths:
   /ping:
     get:
-      summary: Test resource suitable for API credential validation
+      summary: Test endpoint
+      description: Test resource suitable for API credential validation
+      operationId: ping
       tags:
         - General
       responses:
@@ -150,7 +152,9 @@ paths:
                     description: Returns the public key used
   /account.json:
     get:
-      summary: Retrieves account related information-
+      summary: Retrieves account related information
+      description: Retrieves account related information
+      operationId: account
       tags:
         - General
       responses:
@@ -163,7 +167,9 @@ paths:
 
   /files/{id}:
     get:
-      summary: Retrieves a previously created processing result
+      summary: Submits a file for processing
+      description: Retrieves a previously created processing result
+      operationId: getFileResult
       parameters:
         - in: path
           name: id
@@ -183,7 +189,10 @@ paths:
   /files:
     post:
       summary: Submits content for processing
-      description: Location and file parameters are mutually exclusive
+      description: >- 
+        Submits content for processing either by posting the file content directly or passing in a URL to fetch.
+        Please note that: location and file parameters are mutually exclusive.
+      operationId: submitFile
       tags:
         - Files
       requestBody:
@@ -233,7 +242,10 @@ paths:
   /files/async:
     post:
       summary: Submits content for processing asynchronously
-      description: The purpose of this endpoint is to allow content to be submitted for processing without blocking the callee. This also implies the callee must lookup the result using our lookup endpoint, or wire in a callback webhook.
+      description: >-
+        The purpose of this endpoint is to allow content to be submitted for processing without blocking the callee. 
+        This also implies the callee must lookup the result using our lookup endpoint, or wire in a callback webhook.
+      operationId: submitFileAsync
       tags:
         - Files
       requestBody:
@@ -268,7 +280,9 @@ paths:
   /files/fetch:
     post:
       summary: Submits a URL for processing asynchronously
-      description: Companion to our async endpoint, this allows for synchronous
+      description: >- 
+        Companion to our async endpoint, this allows for synchronous processing of content stored in a remote HTTP location. 
+      operationId: submitFetchLocation
       tags:
         - Files
       requestBody:
@@ -305,6 +319,7 @@ paths:
       summary: Retrieves a previously created token
       description: |
         Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token.
+      operationId: getToken
       parameters:
         - in: path
           name: id
@@ -332,6 +347,7 @@ paths:
       summary: Deletes a previously created token
       description: |
         Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token.
+      operationId: deleteToken
       parameters:
         - in: path
           name: id
@@ -347,6 +363,7 @@ paths:
   /auth/tokens:
     post:
       summary: Creates a temporary authentication token
+      operationId: createToken
       tags:
         - Authentication Tokens
       responses:
