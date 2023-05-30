@@ -3,9 +3,12 @@ jobs:
   production:
     name: Lint
     runs-on: ubuntu-latest
+    strategy:
+      matrix: 
+        files: [ "./src/v22.yaml", "./src/v21.yaml"]
     steps:
       - uses: actions/checkout@v2
       - uses: nwestfall/openapi-action@v1.0.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./src/v22.yaml
+          file: ${{ matrix.files }}

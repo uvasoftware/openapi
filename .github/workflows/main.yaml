@@ -15,7 +15,7 @@ jobs:
           gh release create --generate-notes v"${VERSION}"
         env:
           GITHUB_TOKEN: ${{ github.token }}
-  deploy:
+  generate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
