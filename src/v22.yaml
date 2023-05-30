@@ -114,8 +114,12 @@ components:
 
     Metadata:
       type: object
-      nullable: false
-      description: "Set of key/value pairs that you can attach to an object using the structure: metadata[$NAME]=$VALE"
+      description: >- 
+        Set of key/value pairs that you can attach to an object using the structure: metadata[$NAME]=$VALE.
+        For example metadata[foo]=bar set will cause our service to store a metadata item with key "foo" and value "bar"
+        . You can store multiple metadata items up to the listed limit. 
+        
+        Please note that this item is hard to test in the swagger UI as it requires a custom POST variable to be set. 
       additionalProperties:
         type: string
         maxLength: 30
