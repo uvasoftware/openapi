@@ -60,7 +60,9 @@ components:
           type: string
           nullable: true
         metadata:
-          $ref: '#/components/schemas/Metadata'
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Metadata'
         error:
           type: string
           nullable: true
@@ -83,7 +85,9 @@ components:
         content_type:
           type: string
         metadata:
-          $ref: '#/components/schemas/Metadata'
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Metadata'
     AccountInfo:
       type: object
       properties:
@@ -123,6 +127,7 @@ components:
       additionalProperties:
         type: string
         maxLength: 30
+      example: ""
   securitySchemes:
     token:
       type: http
