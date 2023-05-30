@@ -1,0 +1,385 @@
+openapi: 3.0.0
+info:
+  title: Scanii Content Identification API
+  license: 
+    name: Apache-2.0
+    url: https://github.com/uvasoftware/openapi/blob/main/LICENSE
+  description: |
+    API for the [scanii.com](https://scanii.com) content identification service.
+
+    Notable changes from previous version:
+    * File resource now accepts a metadata argument for arbitrary key/value pairs to be stored alongside the resource
+    * Added a beta account lookup resource
+
+    Please note that to use this API you must first signup for scanii.com and create an API key.
+  version: 2.1.0
+servers:
+  - url: https://api-us1.scanii.com/v2.1
+    description: Virginia/USA processing region
+  - url: https://api-eu1.scanii.com/v2.1
+    description: Dublin/Ireland processing region
+  - url: https://api-eu2.scanii.com/v2.1
+    description: London/United Kingdom processing region
+  - url: https://api-ap1.scanii.com/v2.1
+    description: Sydney/Australia processing region
+  - url: https://api-ap2.scanii.com/v2.1
+    description: Singapore/Singapore processing region
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        creation_date:
+          type: string
+          format: iso8601
+        last_login:
+          type: string
+          format: iso8601
+    ApiKey:
+      type: object
+      properties:
+        active:
+          type: boolean
+        detection_categories_enabled:
+          type: array
+          items:
+            type: string
+        last_seen_date:
+          type: string
+          format: iso8601
+        creation_date:
+          type: string
+          format: iso8601
+        tags:
+          type: array
+          items:
+            type: string
+    ErrorResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Metadata'
+        error:
+          type: string
+          nullable: true
+    ProcessingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        checksum:
+          type: string
+        content_length:
+          type: number
+        findings:
+          type: array
+          items:
+            type: string
+        creation_date:
+          type: string
+          format: iso8601
+        content_type:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Metadata'
+    AccountInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        balance:
+          type: number
+        starting_balance:
+          type: number
+        billing_email:
+          type: string
+        subscription:
+          type: string
+        creation_date:
+          type: string
+          format: iso8601
+        modification_date:
+          type: string
+          format: iso8601
+        users:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/User'
+        keys:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ApiKey'
+
+    Metadata:
+      type: object
+      description: >- 
+        Set of key/value pairs that you can attach to an object using the structure: metadata[$NAME]=$VALE.
+        For example metadata[foo]=bar set will cause our service to store a metadata item with key "foo" and value "bar"
+        . You can store multiple metadata items up to the listed limit. 
+        
+        Please note that this item is hard to test in the swagger UI as it requires a custom POST variable to be set. 
+      additionalProperties:
+        type: string
+        maxLength: 30
+      example: ""
+  securitySchemes:
+    token:
+      type: http
+      scheme: basic
+security:
+  - token: [ ]
+paths:
+  /ping:
+    get:
+      summary: Test endpoint
+      description: Test resource suitable for API credential validation
+      operationId: ping
+      tags:
+        - General
+      responses:
+        '200': # status code
+          description: Validates that API credentials are working
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  key:
+                    type: string
+                    description: Returns the public key used
+  /account.json:
+    get:
+      summary: Retrieves account related information
+      description: Retrieves account related information
+      operationId: account
+      tags:
+        - General
+      responses:
+        '200': # status code
+          description: Validates that API credentials are working
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountInfo'
+
+  /files/{id}:
+    get:
+      summary: Submits a file for processing
+      description: Retrieves a previously created processing result
+      operationId: getFileResult
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Processing id
+      tags:
+        - Files
+      responses:
+        '200': # status code
+          description: Retrieves a processing result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingResponse'
+  /files:
+    post:
+      summary: Submits content for processing
+      description: >- 
+        Submits content for processing by posting the file synchronously.
+      operationId: submitFile
+      tags:
+        - Files
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  description: File to analyze
+                  type: string
+                  format: binary
+                callback:
+                  description: Callback URL to notify once processing is completed
+                  type: string
+                metadata:
+                  $ref: '#/components/schemas/Metadata'
+      responses:
+        '200': # status code
+          description: Retrieves a processing result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Your API keys cannot be used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: Content submitted for processing is too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /files/async:
+    post:
+      summary: Submits content for processing asynchronously
+      description: >-
+        The purpose of this endpoint is to allow content to be submitted for processing without blocking the callee. 
+        This also implies the callee must lookup the result using our lookup endpoint, or wire in a callback webhook.
+      operationId: submitFileAsync
+      tags:
+        - Files
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  description: File to analyze
+                  type: string
+                  format: binary
+                callback:
+                  description: Callback URL to notify once processing is completed
+                  type: string
+                metadata:
+                  $ref: '#/components/schemas/Metadata'
+      responses:
+        '202':
+          description: Retrieves a processing result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /files/fetch:
+    post:
+      summary: Submits a URL for processing asynchronously
+      description: >- 
+        Companion to our async endpoint, this allows for synchronous processing of content stored in a remote HTTP location. 
+      operationId: submitFetchLocation
+      tags:
+        - Files
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  description: File to analyze
+                  type: string
+                  format: binary
+                callback:
+                  description: Callback URL to notify once processing is completed
+                  type: string
+                metadata:
+                  $ref: '#/components/schemas/Metadata'
+      responses:
+        '202':
+          description: Retrieves a processing result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/tokens/{id}:
+    get:
+      summary: Retrieves a previously created token
+      description: |
+        Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token.
+      operationId: getToken
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Auth token id
+      tags:
+        - Authentication Tokens
+      responses:
+        '200': # status code
+          description: Retrieves a previously created token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  creation_date:
+                    type: string
+                  expiration_date:
+                    type: string
+    delete:
+      summary: Deletes a previously created token
+      description: |
+        Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token.
+      operationId: deleteToken
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Processing id
+      tags:
+        - Authentication Tokens
+      responses:
+        '204': # status code
+          description: Token successfully deleted
+  /auth/tokens:
+    post:
+      summary: Creates a temporary authentication token
+      operationId: createToken
+      tags:
+        - Authentication Tokens
+      responses:
+        '200': # status code
+          description: Retrieves a processing result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  creation_date:
+                    type: string
+                  expiration_date:
+                    type: string
+
