@@ -258,8 +258,8 @@ paths:
                 metadata:
                   $ref: '#/components/schemas/Metadata'
       responses:
-        '200': # status code
-          description: Retrieves a processing result
+        '201': 
+          description: Analyzes content and returns a processing result
           headers:
             X-Scanii-Request-Id:
               $ref: '#/components/headers/X-Scanii-Request-Id'
