@@ -99,26 +99,54 @@ components:
         error:
           type: string
           nullable: true
-    ProcessingResponse:
+    ProcessingPendingResponse:
       type: object
+      description: Entity representation of a pending content analysis
       properties:
         id:
+          description: This result unique identifier, should be used to retried the result of the analysis
+          type: string
+    ProcessingResponse:
+      type: object
+      description: |
+        Entity representation the result of a file analysis. Please note that this entity is only returned for
+        synchronous requests. For asynchronous requests please refer to the [Files](#tag/Files) resource.
+      properties:
+        id:
+          description: This result unique identifier, should be used to retried the result of the analysis
           type: string
         checksum:
           type: string
+          description: The SHA1 digest of the content processed
         content_length:
           type: number
+          description: The length in bytes of the content processed
         findings:
           type: array
           items:
             type: string
+          description: |
+            These are the labels/findings identified by our detection engines using a dot notation for hierarchies, for 
+            example: content.malicious.foo or content.malicious.bar. Please note that the actual findings will vary based
+            on the content type and the detection engines enabled for your API key.
+            As of this API version common content hierarchies include: 
+            
+            * content.malicious.{{name}} - malicious content like malware and spam 
+            * content.images.nsfw.{{name}} - unsafe image 
+            * content.{{ISO_3166-1_alpha-2 country code}}.language.nsfw - unsafe language
+            
+            A empty findings array means that no findings were identified for the content processed and it should be considered *safe*. 
+
         creation_date:
           type: string
           format: iso8601
+          description: ISO8601 time stamp of when the content was processed
         content_type:
           type: string
+          description: The media type of the content processed
         metadata:
           type: object
+          description: Arbitrary set of user-supplied key/value pairs
           additionalProperties:
             $ref: '#/components/schemas/Metadata'
     AccountInfo:
@@ -362,7 +390,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProcessingResponse'
+                $ref: '#/components/schemas/ProcessingPendingResponse'
         '400':
           description: Bad request
           headers:
@@ -414,7 +442,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProcessingResponse'
+                $ref: '#/components/schemas/ProcessingPendingResponse'
         '400':
           description: Bad request
           headers:
