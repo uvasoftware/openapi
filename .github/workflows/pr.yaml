@@ -12,3 +12,5 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ matrix.files }}
+      - run: |
+          make build
