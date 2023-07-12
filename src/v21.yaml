@@ -303,10 +303,7 @@ paths:
                 file:
                   description: File to analyze
                   type: string
-                  format: binary
-                callback:
-                  description: Callback URL to notify once processing is completed
-                  type: string
+                  format: binary              
                 metadata:
                   $ref: '#/components/schemas/Metadata'
       responses:
@@ -427,10 +424,9 @@ paths:
             schema:
               type: object
               properties:
-                file:
-                  description: File to analyze
+                location:
+                  description: URL to fetch and analyze
                   type: string
-                  format: binary
                 callback:
                   description: Callback URL to notify once processing is completed
                   type: string
