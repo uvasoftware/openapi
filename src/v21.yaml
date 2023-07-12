@@ -297,9 +297,6 @@ paths:
             schema:
               type: object
               properties:
-                location:
-                  description: URL to fetch and analyze
-                  type: string
                 file:
                   description: File to analyze
                   type: string
