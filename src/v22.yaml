@@ -530,6 +530,8 @@ paths:
     post:
       summary: Creates a temporary authentication token
       operationId: createToken
+      description: |
+        Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token.
       tags:
         - Authentication Tokens
       requestBody:
