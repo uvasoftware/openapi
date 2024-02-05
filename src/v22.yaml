@@ -1,25 +1,30 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
   title: Scanii Content Identification API
   version: 2.2.0
   contact:
-      name: Uva Software LLC (Scanii)
-      url: https://www.scanii.com
-      email: support@uvasoftware.com
-  license: 
+    name: Uva Software LLC (Scanii)
+    url: https://www.scanii.com
+    email: support@uvasoftware.com
+  license:
     name: Apache-2.0
     url: https://github.com/uvasoftware/openapi/blob/main/LICENSE
   description: |
     API for the [scanii.com](https://scanii.com) content identification service.
 
-    Notable changes from previous version:
-    * Addition of a location argument to synchronous calls in our Files resources
-
     Please note that to use this API you must first signup for scanii.com and create an API key. You can create an API 
-    in seconds by visiting the [API keys](https://scanii.com/account/settings/keys) section of the scanii.com dashboard.
+    in seconds by creating an account at [scanii.com](https://www.scanii.com). Documentation can be found in our documentation
+    site: [https://docs.scanii.com](https://docs.scanii.com)
     
     Need help? Just email support@uvasoftware.com
+
+    Notable changes from previous version:
+      * Addition of a location argument to synchronous calls in our Files resources
     
+    Implementation notes:
+    * Please note that the way we handle metadata is by using a special prefix in the form of `metadata[foo]=bar` where `foo` is the key and `bar` is the value.
+    This doesn't map well to most openapi generators so some manual adjusting of the generated code might be required. We plan on addressing this in a future release.
+
 servers:
   - url: https://api-us1.scanii.com/v2.2
     description: Virginia/USA processing region
@@ -33,13 +38,13 @@ servers:
     description: Singapore/Singapore processing region
 tags:
   - name: Files
-    description: Operations related to file analysis
+    description: Operations related to file analysis.
   - name: General
     description: Operations related to account management and credentials validation
-  - name: Authentication Tokens 
-    description: Operations related to temporary authentication tokens
+  - name: Authentication Token
+    description: Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token.
 components:
-  responses: 
+  responses:
     401:
       description: Bad credentials, the API key/secret combination is either invalid or unusable
       headers:
@@ -50,8 +55,8 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse' 
-  headers: 
+            $ref: '#/components/schemas/ErrorResponse'
+  headers:
     X-Scanii-Host-Id:
       description: >-
         Unique identifier of the server that processed the request. This is useful for debugging purposes.
@@ -64,6 +69,11 @@ components:
       schema:
         type: string
       required: true
+    Location:
+      schema:
+        type: string
+      description: URL to retrieve the processing result
+
   schemas:
     User:
       type: object
@@ -99,13 +109,13 @@ components:
         id:
           type: string
           nullable: true
-        metadata:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/Metadata'
         error:
           type: string
           nullable: true
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
     ProcessingPendingResponse:
       type: object
       description: Entity representation of a pending content analysis
@@ -124,12 +134,15 @@ components:
           type: string
         checksum:
           type: string
+          nullable: true
           description: The SHA1 digest of the content processed
         content_length:
           type: number
+          nullable: true
           description: The length in bytes of the content processed
         findings:
           type: array
+          nullable: true
           items:
             type: string
           description: |
@@ -145,17 +158,34 @@ components:
             A empty findings array means that no findings were identified for the content processed and it should be considered *safe*. 
 
         creation_date:
+          nullable: true
           type: string
           format: iso8601
           description: ISO8601 time stamp of when the content was processed
         content_type:
           type: string
+          nullable: true
           description: The media type of the content processed
         metadata:
           type: object
-          description: Arbitrary set of user-supplied key/value pairs
+          nullable: true
           additionalProperties:
-            $ref: '#/components/schemas/Metadata'
+            type: string
+        error:
+          type: string
+          nullable: true
+          description: |
+            If an error occurred during processing this field will contain the error message. Please note that this field is only
+            present if an error occurred during processing.
+    AuthToken:
+      type: object
+      properties:
+        id:
+          type: string
+        creation_date:
+          type: string
+        expiration_date:
+          type: string
     AccountInfo:
       type: object
       properties:
@@ -183,24 +213,11 @@ components:
           type: object
           additionalProperties:
             $ref: '#/components/schemas/ApiKey'
-
-    Metadata:
-      type: object
-      description: >- 
-        Set of key/value pairs that you can attach to an object using the structure: metadata[$NAME]=$VALE.
-        For example metadata[foo]=bar set will cause our service to store a metadata item with key "foo" and value "bar"
-        . You can store multiple metadata items up to the listed limit. 
-        
-        Please note that this item is hard to test in the swagger UI as it requires a custom POST variable to be set. 
-      additionalProperties:
-        type: string
-        maxLength: 30
-      example: ""
   securitySchemes:
     token:
       type: http
       scheme: basic
-      description: Our service uses basic authentication (over TLS) for authentication. You can use any API key as the username and the API key secret as the password. 
+      description: Our service uses basic authentication (over TLS) for authentication. You can use any API key as the username and the API key secret as the password.
 security:
   - token: [ ]
 paths:
@@ -215,11 +232,11 @@ paths:
         '200': # status code
           description: Validates that API credentials are working
           headers:
-              X-Scanii-Request-Id: 
-                $ref: '#/components/headers/X-Scanii-Request-Id'
-              X-Scanii-Host-Id:
-                $ref: '#/components/headers/X-Scanii-Host-Id'
-          content:            
+            X-Scanii-Request-Id:
+              $ref: '#/components/headers/X-Scanii-Request-Id'
+            X-Scanii-Host-Id:
+              $ref: '#/components/headers/X-Scanii-Host-Id'
+          content:
             application/json:
               schema:
                 type: object
@@ -230,7 +247,7 @@ paths:
                     type: string
                     description: Returns the public key used
         '401':
-            $ref: '#/components/responses/401'
+          $ref: '#/components/responses/401'
   /account.json:
     get:
       summary: Retrieves account related information
@@ -256,7 +273,7 @@ paths:
     get:
       summary: Retrieves a previously created processing result
       description: Retrieves a previously created processing result
-      operationId: getFileResult
+      operationId: retrieveFile
       parameters:
         - in: path
           name: id
@@ -283,10 +300,10 @@ paths:
   /files:
     post:
       summary: Submits content for processing
-      description: >- 
+      description: >-
         Submits content for processing either by posting the file content directly or passing in a URL to fetch.
         Please note that: location and file parameters are mutually exclusive.
-      operationId: submitFile
+      operationId: processFile
       tags:
         - Files
       requestBody:
@@ -294,19 +311,25 @@ paths:
         content:
           multipart/form-data:
             schema:
+              additionalProperties: false
               type: object
               properties:
-                location:
-                  description: URL to fetch and analyze
-                  type: string
                 file:
                   description: File to analyze
                   type: string
-                  format: binary              
+                  format: binary
+                location:
+                  description: URL to fetch and analyze
+                  type: string
                 metadata:
-                  $ref: '#/components/schemas/Metadata'
+                  type: object
+                  additionalProperties:
+                    type: string
+              required:
+                - file
+                - location
       responses:
-        '201': 
+        '201':
           description: Analyzes content and returns a processing result
           headers:
             X-Scanii-Request-Id:
@@ -314,8 +337,7 @@ paths:
             X-Scanii-Host-Id:
               $ref: '#/components/headers/X-Scanii-Host-Id'
             Location:
-              description: URL to retrieve the processing result
-              required: true
+              $ref: '#/components/headers/Location'
           content:
             application/json:
               schema:
@@ -361,7 +383,7 @@ paths:
       description: >-
         The purpose of this endpoint is to allow content to be submitted for processing without blocking the callee. 
         This also implies the callee must lookup the result using our lookup endpoint, or wire in a callback webhook.
-      operationId: submitFileAsync
+      operationId: processFileAsync
       tags:
         - Files
       requestBody:
@@ -379,7 +401,9 @@ paths:
                   description: Callback URL to notify once processing is completed
                   type: string
                 metadata:
-                  $ref: '#/components/schemas/Metadata'
+                  type: object
+                  additionalProperties:
+                    type: string
       responses:
         '202':
           description: Accepted for processing
@@ -389,8 +413,7 @@ paths:
             X-Scanii-Host-Id:
               $ref: '#/components/headers/X-Scanii-Host-Id'
             Location:
-              description: URL to retrieve the processing result
-              required: true
+              $ref: '#/components/headers/Location'
           content:
             application/json:
               schema:
@@ -411,9 +434,9 @@ paths:
   /files/fetch:
     post:
       summary: Submits a URL for processing asynchronously
-      description: >- 
-        Companion to our async endpoint, this allows for synchronous processing of content stored in a remote HTTP location. 
-      operationId: submitFetchLocation
+      description: >-
+        Companion to our async endpoint, this allows for synchronous processing of content stored in a remote HTTP location.
+      operationId: processFileFetch
       tags:
         - Files
       requestBody:
@@ -429,8 +452,9 @@ paths:
                 callback:
                   description: Callback URL to notify once processing is completed
                   type: string
-                metadata:
-                  $ref: '#/components/schemas/Metadata'
+              additionalProperties:
+                type: string
+                format: metadata[foo]=bar
       responses:
         '202':
           description: Accepted for processing
@@ -440,8 +464,7 @@ paths:
             X-Scanii-Host-Id:
               $ref: '#/components/headers/X-Scanii-Host-Id'
             Location:
-              description: URL to retrieve the processing result
-              required: true
+              $ref: '#/components/headers/Location'
           content:
             application/json:
               schema:
@@ -468,10 +491,8 @@ paths:
       1. They cannot be used to generate other authentication tokens
       2. They cannot be used to access administrative resources
     get:
-      summary: Retrieves a previously created token
-      description: |
-        Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token.
-      operationId: getToken
+      summary: Retrieves a previously created temporary authentication token
+      operationId: retrieveToken
       parameters:
         - in: path
           name: id
@@ -480,7 +501,7 @@ paths:
           required: true
           description: Auth token id
       tags:
-        - Authentication Tokens
+        - Authentication Token
       responses:
         '200': # status code
           description: Retrieves a previously created token
@@ -492,20 +513,11 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  creation_date:
-                    type: string
-                  expiration_date:
-                    type: string
+                $ref: '#/components/schemas/AuthToken'
         '401':
           $ref: '#/components/responses/401'
     delete:
-      summary: Deletes a previously created token
-      description: |
-        Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token.
+      summary: Deletes a previously created temporary authentication token
       operationId: deleteToken
       parameters:
         - in: path
@@ -515,7 +527,7 @@ paths:
           required: true
           description: Processing id
       tags:
-        - Authentication Tokens
+        - Authentication Token
       responses:
         '204': # status code
           description: Token successfully deleted
@@ -530,10 +542,8 @@ paths:
     post:
       summary: Creates a temporary authentication token
       operationId: createToken
-      description: |
-        Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token.
       tags:
-        - Authentication Tokens
+        - Authentication Token
       requestBody:
         required: true
         content:
@@ -557,14 +567,6 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  creation_date:
-                    type: string
-                  expiration_date:
-                    type: string
-
+                $ref: '#/components/schemas/AuthToken'
         '401':
           $ref: '#/components/responses/401'
