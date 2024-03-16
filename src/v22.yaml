@@ -557,8 +557,8 @@ paths:
                   format: "int64"
                   default: "300"
       responses:
-        '200': # status code
-          description: Retrieves a processing result
+        '201': # status code
+          description: Token successfully created
           headers:
             X-Scanii-Request-Id:
               $ref: '#/components/headers/X-Scanii-Request-Id'
