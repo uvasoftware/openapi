@@ -192,9 +192,11 @@ components:
         name:
           type: string
         balance:
-          type: number
+          type: integer
+          format: int32
         starting_balance:
-          type: number
+          type: integer
+          format: int32
         billing_email:
           type: string
         subscription:
