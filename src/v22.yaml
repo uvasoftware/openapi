@@ -328,9 +328,9 @@ paths:
                   type: object
                   additionalProperties:
                     type: string
-              required:
-                - file
-                - location
+              anyOf:
+                - required: [ file ]
+                - required: [ location ]
       responses:
         '201':
           description: Analyzes content and returns a processing result
