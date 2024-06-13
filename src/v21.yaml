@@ -318,16 +318,10 @@ paths:
                   type: string
                   format: binary
                   maxLength: 200000000
-                location:
-                  description: URL to fetch and analyze. Downloaded file must has a 2GB limit
-                  type: string
                 metadata:
                   type: object
                   additionalProperties:
                     type: string
-              required:
-                - file
-                - location
       responses:
         '201':
           description: Analyzes content and returns a processing result
@@ -448,7 +442,7 @@ paths:
               type: object
               properties:
                 location:
-                  description: URL to fetch and analyze. Downloaded file must has a 2GB limit
+                  description: URL to fetch and analyze. Downloaded file has a 2GB limit
                   type: string
                 callback:
                   description: Callback URL to notify once processing is completed
