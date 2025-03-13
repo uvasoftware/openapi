@@ -33,6 +33,8 @@ servers:
     description: Sydney/Australia processing region
   - url: https://api-ap2.scanii.com/v2.1
     description: Singapore/Singapore processing region
+  - url: https://api-ca1.scanii.com/v2.1
+    description: Montreal/Canada processing region
 tags:
   - name: Files
     description: Operations related to file analysis.
