@@ -36,6 +36,8 @@ servers:
     description: Sydney/Australia processing region
   - url: https://api-ap2.scanii.com/v2.2
     description: Singapore/Singapore processing region
+  - url: https://api-ca1.scanii.com/v2.2
+    description: Montreal/Canada processing region
 tags:
   - name: Files
     description: Operations related to file analysis.
@@ -45,7 +47,7 @@ tags:
     description: Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token.
 components:
   responses:
-    401:
+    unauthorized:
       description: Bad credentials, the API key/secret combination is either invalid or unusable
       headers:
         X-Scanii-Request-Id:
@@ -249,7 +251,7 @@ paths:
                     type: string
                     description: Returns the public key used
         '401':
-          $ref: '#/components/responses/401'
+          $ref: '#/components/responses/unauthorized'
   /account.json:
     get:
       summary: Retrieves account related information
@@ -270,7 +272,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AccountInfo'
         '401':
-          $ref: '#/components/responses/401'
+          $ref: '#/components/responses/unauthorized'
   /files/{id}:
     get:
       summary: Retrieves a previously created processing result
@@ -298,7 +300,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProcessingResponse'
         '401':
-          $ref: '#/components/responses/401'
+          $ref: '#/components/responses/unauthorized'
   /files:
     post:
       summary: Submits content for processing
@@ -357,7 +359,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
-          $ref: '#/components/responses/401'
+          $ref: '#/components/responses/unauthorized'
         '403':
           description: Your API keys cannot be used
           headers:
@@ -434,7 +436,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
-          $ref: '#/components/responses/401'
+          $ref: '#/components/responses/unauthorized'
   /files/fetch:
     post:
       summary: Submits a URL for processing asynchronously
@@ -485,7 +487,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
-          $ref: '#/components/responses/401'
+          $ref: '#/components/responses/unauthorized'
   /auth/tokens/{id}:
     description: >-
       Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token. 
@@ -519,7 +521,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthToken'
         '401':
-          $ref: '#/components/responses/401'
+          $ref: '#/components/responses/unauthorized'
     delete:
       summary: Deletes a previously created temporary authentication token
       operationId: deleteToken
@@ -541,7 +543,7 @@ paths:
             X-Scanii-Host-Id:
               $ref: '#/components/headers/X-Scanii-Host-Id'
         '401':
-          $ref: '#/components/responses/401'
+          $ref: '#/components/responses/unauthorized'
   /auth/tokens:
     post:
       summary: Creates a temporary authentication token
@@ -573,4 +575,4 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthToken'
         '401':
-          $ref: '#/components/responses/401'
+          $ref: '#/components/responses/unauthorized'

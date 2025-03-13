@@ -5,12 +5,24 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix: 
-        files: [ "./src/v22.yaml", "./src/v21.yaml"]
+        path: [ "./src/v22.yaml", "./src/v21.yaml"]
     steps:
-      - uses: actions/checkout@v2
-      - uses: nwestfall/openapi-action@v1.0.2
+      - uses: actions/checkout@v4
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      - name: Cache Homebrew Bundler RubyGems
+        id: cache
+        uses: actions/cache@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ matrix.files }}
-      - run: |
-          make build
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ${{ runner.os }}-rubygems-
+      - name: Linting with Vacuum
+        run: |
+          brew install daveshanley/vacuum/vacuum
+          vacuum lint -d ${{matrix.path}}
+      - name: Linting with openapi-generator
+        run: |
+          brew install openapi-generator
+          openapi-generator validate --recommend -i ${{matrix.path}}    
