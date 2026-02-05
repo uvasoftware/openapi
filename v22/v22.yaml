@@ -561,7 +561,9 @@ paths:
                   description: Number of seconds this token should be valid for
                   type: "integer"
                   format: "int64"
-                  default: "300"
+                  default: 300
+                  maximum: 86400
+                  minimum: 1
       responses:
         '201': # status code
           description: Token successfully created
