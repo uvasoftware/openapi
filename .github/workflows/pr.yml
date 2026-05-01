@@ -1,0 +1,37 @@
+name: PR
+
+on: pull_request
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint ${{ matrix.spec }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        spec: [src/v22.yaml, src/v21.yaml]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install openapi-generator
+        run: npm install -g @openapitools/openapi-generator-cli
+
+      - name: Install vacuum
+        run: |
+          curl -fsSL https://github.com/daveshanley/vacuum/releases/download/v0.26.4/vacuum_0.26.4_linux_x86_64.tar.gz \
+            | tar -xz vacuum
+          sudo mv vacuum /usr/local/bin/vacuum
+
+      - name: Lint with vacuum
+        run: vacuum lint -d --no-style ${{ matrix.spec }}
+
+      - name: Validate with openapi-generator
+        run: openapi-generator-cli validate --recommend -i ${{ matrix.spec }}
