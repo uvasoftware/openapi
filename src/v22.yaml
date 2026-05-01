@@ -1,30 +1,30 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Scanii Content Identification API
-  version: 2.2.0
+  description: "Scanii is a content security API that scans files for malware, NSFW\
+    \ imagery, \nand harmful language — one HTTP call, one JSON response, no SDK wrestling\
+    \ required.\n\n* Get started: Grab an API key at https://scanii.com (free tier,\
+    \ 60 seconds).\n* Full docs: https://docs.scanii.com\n* Six regions: US, Canada,\
+    \ Ireland, UK, Australia, Singapore — your data stays where you put it.\n* Stuck?\
+    \ support@uvasoftware.com — a human replies, usually fast.\n\nWhat's new in 2.2:\n\
+    \n  * `location` parameter on synchronous /files endpoints for region pinning\
+    \ on URL fetches.\n  * **Preview:** `GET /files/{id}/trace` returns an ordered\
+    \ event log for a processing \n    id — handy when you want to know *why* a finding\
+    \ fired (or didn't). API surface \n    may shift before it's marked stable; feedback\
+    \ welcome.\n\nImplementation notes:\n\n  * Metadata uses bracket-prefix form syntax:\
+    \ `metadata[key]=value` (e.g. \n    `metadata[user_id]=42`). Values come back\
+    \ on the result payload so you can \n    correlate scans to your own records without\
+    \ us storing anything.\n  * Heads up: most OpenAPI generators don't model the\
+    \ `metadata[*]` pattern \n    cleanly, so generated client code may need a small\
+    \ manual nudge. We're \n    looking at this for a future release."
   contact:
     name: Uva Software LLC (Scanii)
     url: https://www.scanii.com
     email: support@uvasoftware.com
   license:
     name: Apache-2.0
-    url: https://github.com/uvasoftware/openapi/blob/main/LICENSE
-  description: |
-    API for the [scanii.com](https://scanii.com) content identification service.
-
-    Please note that to use this API you must first signup for scanii.com and create an API key. You can create an API 
-    in seconds by creating an account at [scanii.com](https://www.scanii.com). Documentation can be found in our documentation
-    site: [https://docs.scanii.com](https://docs.scanii.com)
-    
-    Need help? Just email support@uvasoftware.com
-
-    Notable changes from previous version:
-      * Addition of a location argument to synchronous calls in our Files resources
-    
-    Implementation notes:
-    * Please note that the way we handle metadata is by using a special prefix in the form of `metadata[foo]=bar` where `foo` is the key and `bar` is the value.
-    This doesn't map well to most openapi generators so some manual adjusting of the generated code might be required. We plan on addressing this in a future release.
-
+    url: https://github.com/scanii/openapi/blob/main/LICENSE
+  version: 2.2.0
 servers:
   - url: https://api-us1.scanii.com/v2.2
     description: Virginia/USA processing region
@@ -38,543 +38,768 @@ servers:
     description: Singapore/Singapore processing region
   - url: https://api-ca1.scanii.com/v2.2
     description: Montreal/Canada processing region
+security:
+  - token: []
 tags:
   - name: Files
     description: Operations related to file analysis.
   - name: General
     description: Operations related to account management and credentials validation
   - name: Authentication Token
-    description: Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token.
-components:
-  responses:
-    unauthorized:
-      description: Bad credentials, the API key/secret combination is either invalid or unusable
-      headers:
-        X-Scanii-Request-Id:
-          $ref: '#/components/headers/X-Scanii-Request-Id'
-        X-Scanii-Host-Id:
-          $ref: '#/components/headers/X-Scanii-Host-Id'
-      content:
-        application/json:
+    description: "Operations related to managing authentication tokens for temporary,\
+    \ scoped API access."
+paths:
+  /v2.2/files/fetch:
+    post:
+      tags:
+        - Files
+      summary: Submits a URL for processing asynchronously
+      description: "Companion to our async endpoint, this allows for asynchronous\
+        \ processing of content stored in a remote HTTP location."
+      operationId: processFileFetch
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/ProcessFileFetchRequest"
+        required: true
+      responses:
+        "202":
+          description: Accepted for processing
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+            Location:
+              description: URL to retrieve the processing result
+              style: simple
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessingPendingResponse"
+        "400":
+          description: Bad request
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Bad credentials, the API key/secret combination is either\
+            \ invalid or unusable"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2.2/files/async:
+    post:
+      tags:
+        - Files
+      summary: Submits content for processing asynchronously
+      description: "The purpose of this endpoint is to allow content to be submitted\
+        \ for processing without blocking the callee. This also implies the callee\
+        \ must look up the result using our lookup endpoint, or wire in a callback\
+        \ webhook."
+      operationId: processFileAsync
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ProcessFileAsyncRequest"
+        required: true
+      responses:
+        "202":
+          description: Accepted for processing
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+            Location:
+              description: URL to retrieve the processing result
+              style: simple
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessingPendingResponse"
+        "400":
+          description: Bad request
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Bad credentials, the API key/secret combination is either\
+            \ invalid or unusable"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2.2/files:
+    post:
+      tags:
+        - Files
+      summary: Submits content for processing
+      description: Submits content for processing either by posting the file content
+        directly or passing in a URL to fetch. Please note that the `location` and
+        `file` parameters are mutually exclusive.
+      operationId: processFile
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ProcessFileRequest"
+        required: true
+      responses:
+        "201":
+          description: Analyzes content and returns a processing result
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+            Location:
+              description: URL to retrieve the processing result
+              style: simple
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessingResponse"
+        "400":
+          description: Bad request
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Bad credentials, the API key/secret combination is either\
+            \ invalid or unusable"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Your API keys cannot be used
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: Content submitted for processing is too large
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2.2/auth/tokens:
+    post:
+      tags:
+        - Authentication Token
+      summary: Creates a temporary authentication token
+      operationId: createToken
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/CreateAuthTokenRequest"
+        required: true
+      responses:
+        "201":
+          description: Token successfully created
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthToken"
+        "401":
+          description: "Bad credentials, the API key/secret combination is either\
+            \ invalid or unusable"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2.2/ping:
+    get:
+      tags:
+        - General
+      summary: Test endpoint
+      description: Test resource suitable for API credential validation
+      operationId: ping
+      responses:
+        "200":
+          description: Validates that API credentials are working
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PingResponse"
+        "401":
+          description: "Bad credentials, the API key/secret combination is either\
+            \ invalid or unusable"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2.2/files/{id}/trace:
+    get:
+      tags:
+        - Files
+      summary: Retrieves the processing trace for a file
+      description: "Returns an ordered list of processing events for the supplied\
+        \ processing id, useful for diagnosing why a particular finding was produced\
+        \ or failed."
+      operationId: retrieveFileTrace
+      parameters:
+        - name: id
+          in: path
+          description: Processing id
+          required: true
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-  headers:
-    X-Scanii-Host-Id:
-      description: >-
-        Unique identifier of the server that processed the request. This is useful for debugging purposes.
-      schema:
-        type: string
-      required: true
-    X-Scanii-Request-Id:
-      description: >-
-        Unique identifier of the request. This is useful for debugging purposes.
-      schema:
-        type: string
-      required: true
-    Location:
-      schema:
-        type: string
-      description: URL to retrieve the processing result
-
+            type: string
+      responses:
+        "200":
+          description: Trace successfully retrieved
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TraceResponse"
+        "401":
+          description: "Bad credentials, the API key/secret combination is either\
+            \ invalid or unusable"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trace exists for the supplied id
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2.2/files/{id}:
+    get:
+      tags:
+        - Files
+      summary: Retrieves a previously created processing result
+      description: Retrieves a previously created processing result
+      operationId: retrieveFile
+      parameters:
+        - name: id
+          in: path
+          description: Processing id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Retrieves a processing result
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessingResponse"
+        "401":
+          description: "Bad credentials, the API key/secret combination is either\
+            \ invalid or unusable"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No processing result exists for the supplied id
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2.2/auth/tokens/{id}:
+    get:
+      tags:
+        - Authentication Token
+      summary: Retrieves a previously created temporary authentication token
+      operationId: retrieveToken
+      parameters:
+        - name: id
+          in: path
+          description: Auth token id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Retrieves a previously created token
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthToken"
+        "401":
+          description: "Bad credentials, the API key/secret combination is either\
+            \ invalid or unusable"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No token exists for the supplied id
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - Authentication Token
+      summary: Deletes a previously created temporary authentication token
+      operationId: deleteToken
+      parameters:
+        - name: id
+          in: path
+          description: Auth token id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Token successfully deleted
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+        "401":
+          description: "Bad credentials, the API key/secret combination is either\
+            \ invalid or unusable"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No token exists for the supplied id
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2.2/account.json:
+    get:
+      tags:
+        - General
+      summary: Retrieves account related information
+      description: Retrieves account related information
+      operationId: account
+      responses:
+        "200":
+          description: Returns account related information
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountInfo"
+        "401":
+          description: "Bad credentials, the API key/secret combination is either\
+            \ invalid or unusable"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
   schemas:
-    User:
+    ProcessFileFetchRequest:
       type: object
+      description: "Form payload accepted by `POST /files/fetch`. Additional `metadata[key]=value`\
+        \ form fields may be supplied."
       properties:
-        creation_date:
+        location:
           type: string
-          format: iso8601
-        last_login:
-          type: string
-          format: iso8601
-    ApiKey:
-      type: object
-      properties:
-        active:
-          type: boolean
-        detection_categories_enabled:
-          type: array
-          items:
-            type: string
-        last_seen_date:
-          type: string
-          format: iso8601
-        creation_date:
-          type: string
-          format: iso8601
-        tags:
-          type: array
-          items:
-            type: string
-    ErrorResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          nullable: true
-        error:
-          type: string
-          nullable: true
-        metadata:
-          type: object
-          additionalProperties:
-            type: string
+          description: URL to fetch and analyze. Downloaded file has a 2GB limit
+        callback:
+          type:
+            - string
+            - "null"
+          description: Callback URL to notify once processing is completed
     ProcessingPendingResponse:
       type: object
       description: Entity representation of a pending content analysis
       properties:
         id:
-          description: This result unique identifier, should be used to retried the result of the analysis
           type: string
+          description: "This result's unique identifier, should be used to retrieve\
+            \ the result of the analysis"
+    ErrorResponse:
+      type: object
+      description: Standard error response payload
+      properties:
+        error:
+          type:
+            - string
+            - "null"
+          description: Human-readable description of the error
+        id:
+          type:
+            - string
+            - "null"
+          description: "Identifier of the resource that produced the error, when available"
+        metadata:
+          type:
+            - object
+            - "null"
+          additionalProperties:
+            type: string
+          description: "User-provided metadata associated with the request, when available"
+    ProcessFileAsyncRequest:
+      type: object
+      description: Multipart payload accepted by `POST /files/async`
+      properties:
+        file:
+          type: string
+          format: binary
+          description: File to analyze (200MB limit)
+        callback:
+          type:
+            - string
+            - "null"
+          description: Callback URL to notify once processing is completed
+        metadata:
+          type: object
+          additionalProperties: true
+          description: "User-provided metadata. Sent as repeated form fields with\
+            \ the prefix `metadata[key]=value`."
+    ProcessFileRequest:
+      type: object
+      description: Multipart payload accepted by `POST /files`. `file` and `location`
+        are mutually exclusive; exactly one must be provided.
+      properties:
+        file:
+          type: string
+          format: binary
+          description: File to analyze (200MB limit)
+          maxLength: 209715200
+        location:
+          type: string
+          description: URL to fetch and analyze. Downloaded file has a 2GB limit
+        metadata:
+          type: object
+          additionalProperties: true
+          description: "User-provided metadata. Sent as repeated form fields with\
+            \ the prefix `metadata[key]=value`."
     ProcessingResponse:
       type: object
-      description: |
-        Entity representation the result of a file analysis. Please note that this entity is only returned for
-        synchronous requests. For asynchronous requests please refer to the [Files](#tag/Files) resource.
+      description: Entity representation of the result of a file analysis. Please
+        note that this entity is only returned for synchronous requests. For asynchronous
+        requests please refer to the Files resource.
       properties:
         id:
-          description: This result unique identifier, should be used to retried the result of the analysis
           type: string
+          description: "This result's unique identifier, should be used to retrieve\
+            \ the result of the analysis"
         checksum:
           type: string
-          nullable: true
           description: The SHA1 digest of the content processed
-        content_length:
-          type: number
-          nullable: true
-          description: The length in bytes of the content processed
         findings:
           type: array
-          nullable: true
+          description: |-
+            Labels/findings identified by our detection engines using a dot notation for hierarchies, for example: `content.malicious.foo` or `content.malicious.bar`. The actual findings vary based on the content type and the detection engines enabled for your API key.
+
+            Common content hierarchies as of this API version include:
+
+            * `content.malicious.{name}` - malicious content like malware and spam
+            * `content.images.nsfw.{name}` - unsafe image
+            * `content.{ISO_3166-1_alpha-2 country code}.language.nsfw` - unsafe language
+
+            An empty findings array means that no findings were identified for the content processed and it should be considered *safe*.
           items:
             type: string
-          description: |
-            These are the labels/findings identified by our detection engines using a dot notation for hierarchies, for 
-            example: content.malicious.foo or content.malicious.bar. Please note that the actual findings will vary based
-            on the content type and the detection engines enabled for your API key.
-            As of this API version common content hierarchies include: 
-            
-            * content.malicious.{{name}} - malicious content like malware and spam 
-            * content.images.nsfw.{{name}} - unsafe image 
-            * content.{{ISO_3166-1_alpha-2 country code}}.language.nsfw - unsafe language
-            
-            A empty findings array means that no findings were identified for the content processed and it should be considered *safe*. 
-
+          uniqueItems: true
+        content_length:
+          type: integer
+          format: int64
+          description: The length in bytes of the content processed
         creation_date:
-          nullable: true
           type: string
-          format: iso8601
-          description: ISO8601 time stamp of when the content was processed
+          format: date-time
+          description: ISO8601 timestamp of when the content was processed
         content_type:
           type: string
-          nullable: true
           description: The media type of the content processed
         metadata:
           type: object
-          nullable: true
           additionalProperties:
             type: string
-        error:
+          description: User-provided metadata echoed back from the original request
+    CreateAuthTokenRequest:
+      type: object
+      description: Form payload used to create a new temporary auth token
+      properties:
+        timeout:
           type: string
-          nullable: true
-          description: |
-            If an error occurred during processing this field will contain the error message. Please note that this field is only
-            present if an error occurred during processing.
+          format: int64
+          default: "300"
+          description: Number of seconds this token should be valid for
+          maximum: 86400
+          minimum: 1
     AuthToken:
       type: object
+      description: Time-bound authentication token
       properties:
         id:
           type: string
+          description: Unique identifier of the auth token
         creation_date:
           type: string
+          format: date-time
+          description: ISO8601 timestamp of when the token was created
         expiration_date:
           type: string
+          format: date-time
+          description: ISO8601 timestamp of when the token will expire
+    PingResponse:
+      type: object
+      description: Response payload for the ping endpoint
+      properties:
+        message:
+          type: string
+          description: Constant value indicating that the service is reachable
+          example: pong
+        key:
+          type: string
+          description: Returns the public key used to authenticate the request
+    TraceEvent:
+      type: object
+      description: A single event in a processing trace
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO8601 timestamp at which the event was recorded
+        message:
+          type: string
+          description: Human-readable description of the event
+    TraceResponse:
+      type: object
+      description: Ordered list of processing events for a given processing id
+      properties:
+        id:
+          type: string
+          description: Processing id this trace is for
+        events:
+          type: array
+          description: Ordered list of processing events
+          items:
+            $ref: "#/components/schemas/TraceEvent"
     AccountInfo:
       type: object
+      description: "Account profile, balance, users, and API keys"
       properties:
         name:
           type: string
+          description: Display name of the account
         balance:
           type: integer
           format: int32
+          description: Remaining balance for the current billing period
         starting_balance:
           type: integer
           format: int32
+          description: Balance assigned for the current billing period
         billing_email:
           type: string
+          description: Billing email associated with the account
         subscription:
           type: string
+          description: Subscription plan name
         creation_date:
           type: string
-          format: iso8601
+          format: date-time
+          description: ISO8601 timestamp of when the account was created
         modification_date:
           type: string
-          format: iso8601
+          format: date-time
+          description: ISO8601 timestamp of the last account modification
         users:
           type: object
           additionalProperties:
-            $ref: '#/components/schemas/User'
+            $ref: "#/components/schemas/User"
+          description: "Users in the account, keyed by email address"
         keys:
           type: object
           additionalProperties:
-            $ref: '#/components/schemas/ApiKey'
+            $ref: "#/components/schemas/ApiKey"
+          description: "API keys for the account, keyed by key id"
+    ApiKey:
+      type: object
+      description: API key associated with the account
+      properties:
+        active:
+          type: boolean
+          description: Whether the key is currently active
+        detection_categories_enabled:
+          type: array
+          description: Detection categories enabled for this key
+          items:
+            type: string
+        last_seen_date:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: ISO8601 timestamp of the last time this key was used
+        creation_date:
+          type: string
+          format: date-time
+          description: ISO8601 timestamp of when this key was created
+        tags:
+          type: array
+          description: Free-form tags associated with the key
+          items:
+            type: string
+    User:
+      type: object
+      description: User of an account
+      properties:
+        creation_date:
+          type: string
+          format: date-time
+          description: ISO8601 timestamp of when the user joined the account
+        last_login_date:
+          type: string
+          format: date-time
+          description: ISO8601 timestamp of when the user last logged in
+  headers:
+    X-Scanii-Request-Id:
+      description: "Unique identifier of the request, useful for debugging."
+      schema:
+        type: string
+    X-Scanii-Host-Id:
+      description: "Unique identifier of the server that processed the request, useful\
+        \ for debugging."
+      schema:
+        type: string
   securitySchemes:
     token:
       type: http
+      description: Our service uses basic authentication (over TLS) for authentication.
+        You can use any API key as the username and the API key secret as the password.
       scheme: basic
-      description: Our service uses basic authentication (over TLS) for authentication. You can use any API key as the username and the API key secret as the password.
-security:
-  - token: [ ]
-paths:
-  /ping:
-    get:
-      summary: Test endpoint
-      description: Test resource suitable for API credential validation
-      operationId: ping
-      tags:
-        - General
-      responses:
-        '200': # status code
-          description: Validates that API credentials are working
-          headers:
-            X-Scanii-Request-Id:
-              $ref: '#/components/headers/X-Scanii-Request-Id'
-            X-Scanii-Host-Id:
-              $ref: '#/components/headers/X-Scanii-Host-Id'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  key:
-                    type: string
-                    description: Returns the public key used
-        '401':
-          $ref: '#/components/responses/unauthorized'
-  /account.json:
-    get:
-      summary: Retrieves account related information
-      description: Retrieves account related information
-      operationId: account
-      tags:
-        - General
-      responses:
-        '200': # status code
-          description: Returns account related information
-          headers:
-            X-Scanii-Request-Id:
-              $ref: '#/components/headers/X-Scanii-Request-Id'
-            X-Scanii-Host-Id:
-              $ref: '#/components/headers/X-Scanii-Host-Id'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AccountInfo'
-        '401':
-          $ref: '#/components/responses/unauthorized'
-  /files/{id}:
-    get:
-      summary: Retrieves a previously created processing result
-      description: Retrieves a previously created processing result
-      operationId: retrieveFile
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: Processing id
-      tags:
-        - Files
-      responses:
-        '200': # status code
-          description: Retrieves a processing result
-          headers:
-            X-Scanii-Request-Id:
-              $ref: '#/components/headers/X-Scanii-Request-Id'
-            X-Scanii-Host-Id:
-              $ref: '#/components/headers/X-Scanii-Host-Id'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProcessingResponse'
-        '401':
-          $ref: '#/components/responses/unauthorized'
-  /files:
-    post:
-      summary: Submits content for processing
-      description: >-
-        Submits content for processing either by posting the file content directly or passing in a URL to fetch.
-        Please note that: location and file parameters are mutually exclusive.
-      operationId: processFile
-      tags:
-        - Files
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              additionalProperties: false
-              type: object
-              properties:
-                file:
-                  description: File to analyze, 200MB limit
-                  type: string
-                  format: binary
-                  maxLength: 200000000
-                location:
-                  description: URL to fetch and analyze. Downloaded file must has a 2GB limit
-                  type: string
-                metadata:
-                  type: object
-                  additionalProperties:
-                    type: string
-              anyOf:
-                - required: [ file ]
-                - required: [ location ]
-      responses:
-        '201':
-          description: Analyzes content and returns a processing result
-          headers:
-            X-Scanii-Request-Id:
-              $ref: '#/components/headers/X-Scanii-Request-Id'
-            X-Scanii-Host-Id:
-              $ref: '#/components/headers/X-Scanii-Host-Id'
-            Location:
-              $ref: '#/components/headers/Location'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProcessingResponse'
-        '400':
-          description: Bad request
-          headers:
-            X-Scanii-Request-Id:
-              $ref: '#/components/headers/X-Scanii-Request-Id'
-            X-Scanii-Host-Id:
-              $ref: '#/components/headers/X-Scanii-Host-Id'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          $ref: '#/components/responses/unauthorized'
-        '403':
-          description: Your API keys cannot be used
-          headers:
-            X-Scanii-Request-Id:
-              $ref: '#/components/headers/X-Scanii-Request-Id'
-            X-Scanii-Host-Id:
-              $ref: '#/components/headers/X-Scanii-Host-Id'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '413':
-          description: Content submitted for processing is too large
-          headers:
-            X-Scanii-Request-Id:
-              $ref: '#/components/headers/X-Scanii-Request-Id'
-            X-Scanii-Host-Id:
-              $ref: '#/components/headers/X-Scanii-Host-Id'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /files/async:
-    post:
-      summary: Submits content for processing asynchronously
-      description: >-
-        The purpose of this endpoint is to allow content to be submitted for processing without blocking the callee. 
-        This also implies the callee must lookup the result using our lookup endpoint, or wire in a callback webhook.
-      operationId: processFileAsync
-      tags:
-        - Files
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                file:
-                  description: File to analyze, 200MB limit
-                  type: string
-                  format: binary
-                  maxLength: 200000000
-                callback:
-                  description: Callback URL to notify once processing is completed
-                  type: string
-                metadata:
-                  type: object
-                  additionalProperties:
-                    type: string
-      responses:
-        '202':
-          description: Accepted for processing
-          headers:
-            X-Scanii-Request-Id:
-              $ref: '#/components/headers/X-Scanii-Request-Id'
-            X-Scanii-Host-Id:
-              $ref: '#/components/headers/X-Scanii-Host-Id'
-            Location:
-              $ref: '#/components/headers/Location'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProcessingPendingResponse'
-        '400':
-          description: Bad request
-          headers:
-            X-Scanii-Request-Id:
-              $ref: '#/components/headers/X-Scanii-Request-Id'
-            X-Scanii-Host-Id:
-              $ref: '#/components/headers/X-Scanii-Host-Id'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          $ref: '#/components/responses/unauthorized'
-  /files/fetch:
-    post:
-      summary: Submits a URL for processing asynchronously
-      description: >-
-        Companion to our async endpoint, this allows for synchronous processing of content stored in a remote HTTP location.
-      operationId: processFileFetch
-      tags:
-        - Files
-      requestBody:
-        required: true
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: object
-              properties:
-                location:
-                  description: URL to fetch and analyze. Downloaded file has a 2GB limit
-                  type: string
-                callback:
-                  description: Callback URL to notify once processing is completed
-                  type: string
-              additionalProperties:
-                type: string
-                format: metadata[foo]=bar
-      responses:
-        '202':
-          description: Accepted for processing
-          headers:
-            X-Scanii-Request-Id:
-              $ref: '#/components/headers/X-Scanii-Request-Id'
-            X-Scanii-Host-Id:
-              $ref: '#/components/headers/X-Scanii-Host-Id'
-            Location:
-              $ref: '#/components/headers/Location'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProcessingPendingResponse'
-        '400':
-          description: Bad request
-          headers:
-            X-Scanii-Request-Id:
-              $ref: '#/components/headers/X-Scanii-Request-Id'
-            X-Scanii-Host-Id:
-              $ref: '#/components/headers/X-Scanii-Host-Id'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          $ref: '#/components/responses/unauthorized'
-  /auth/tokens/{id}:
-    description: >-
-      Authentication tokens are to be used in situations in which you want to grant temporary access to Scanii's API to third party or untrusted sources. The canonical example being allowing API calls to happen from a untrusted web browser on your behalf in a secure fashion. Instead of shipping your real API keys to the client's browser, you generate a time bound authentication token. 
-
-      Authentication tokens have limits: 
-
-      1. They cannot be used to generate other authentication tokens
-      2. They cannot be used to access administrative resources
-    get:
-      summary: Retrieves a previously created temporary authentication token
-      operationId: retrieveToken
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: Auth token id
-      tags:
-        - Authentication Token
-      responses:
-        '200': # status code
-          description: Retrieves a previously created token
-          headers:
-            X-Scanii-Request-Id:
-              $ref: '#/components/headers/X-Scanii-Request-Id'
-            X-Scanii-Host-Id:
-              $ref: '#/components/headers/X-Scanii-Host-Id'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthToken'
-        '401':
-          $ref: '#/components/responses/unauthorized'
-    delete:
-      summary: Deletes a previously created temporary authentication token
-      operationId: deleteToken
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: Processing id
-      tags:
-        - Authentication Token
-      responses:
-        '204': # status code
-          description: Token successfully deleted
-          headers:
-            X-Scanii-Request-Id:
-              $ref: '#/components/headers/X-Scanii-Request-Id'
-            X-Scanii-Host-Id:
-              $ref: '#/components/headers/X-Scanii-Host-Id'
-        '401':
-          $ref: '#/components/responses/unauthorized'
-  /auth/tokens:
-    post:
-      summary: Creates a temporary authentication token
-      operationId: createToken
-      tags:
-        - Authentication Token
-      requestBody:
-        required: true
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: object
-              properties:
-                timeout:
-                  description: Number of seconds this token should be valid for
-                  type: "integer"
-                  format: "int64"
-                  default: 300
-                  maximum: 86400
-                  minimum: 1
-      responses:
-        '201': # status code
-          description: Token successfully created
-          headers:
-            X-Scanii-Request-Id:
-              $ref: '#/components/headers/X-Scanii-Request-Id'
-            X-Scanii-Host-Id:
-              $ref: '#/components/headers/X-Scanii-Host-Id'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthToken'
-        '401':
-          $ref: '#/components/responses/unauthorized'
