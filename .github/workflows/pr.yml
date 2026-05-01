@@ -26,12 +26,12 @@ jobs:
 
       - name: Install vacuum
         run: |
-          curl -fsSL https://github.com/daveshanley/vacuum/releases/latest/download/vacuum_linux_amd64.tar.gz \
+          curl -fsSL https://github.com/daveshanley/vacuum/releases/download/v0.26.4/vacuum_0.26.4_linux_x86_64.tar.gz \
             | tar -xz vacuum
           sudo mv vacuum /usr/local/bin/vacuum
 
       - name: Lint with vacuum
-        run: vacuum lint -d ${{ matrix.spec }}
+        run: vacuum lint -d --no-style ${{ matrix.spec }}
 
       - name: Validate with openapi-generator
         run: openapi-generator-cli validate --recommend -i ${{ matrix.spec }}
