@@ -48,17 +48,19 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Generate Swagger UI (v2.2)
-        uses: Legion2/swagger-ui-action@v1
+        uses: Legion2/swagger-ui-action@v1.3.0
         with:
           output: dist/v22
           spec-file: src/v22.yaml
+          version: ^5.0.0
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Swagger UI (v2.1)
-        uses: Legion2/swagger-ui-action@v1
+        uses: Legion2/swagger-ui-action@v1.3.0
         with:
           output: dist/v21
           spec-file: src/v21.yaml
+          version: ^5.0.0
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy to GitHub Pages
