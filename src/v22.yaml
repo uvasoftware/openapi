@@ -460,6 +460,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - Files
+      summary: Hard deletes a previously created processing result and its trace
+      description: Permanently deletes the processing result and associated processing trace for the supplied id.
+      operationId: deleteFile
+      parameters:
+        - name: id
+          in: path
+          description: Processing id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Processing result and trace successfully deleted
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+        "401":
+          description: "Bad credentials, the API key/secret combination is either\
+            \ invalid or unusable"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
   /v2.2/auth/tokens/{id}:
     get:
       tags:
