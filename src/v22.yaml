@@ -463,8 +463,10 @@ paths:
     delete:
       tags:
         - Files
-      summary: Hard deletes a previously created processing result and its trace
-      description: Permanently deletes the processing result and associated processing trace for the supplied id.
+      summary: Deletes a previously created processing result
+      description: "Permanently deletes the processing result, and its trace, for\
+        \ the supplied processing id. A 404 means there was nothing to delete, which\
+        \ is also what a repeated delete of the same id returns."
       operationId: deleteFile
       parameters:
         - name: id
@@ -475,7 +477,7 @@ paths:
             type: string
       responses:
         "204":
-          description: Processing result and trace successfully deleted
+          description: Processing result deleted
           headers:
             X-Scanii-Request-Id:
               $ref: "#/components/headers/X-Scanii-Request-Id"
@@ -489,6 +491,33 @@ paths:
               $ref: "#/components/headers/X-Scanii-Request-Id"
             X-Scanii-Host-Id:
               $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "The credentials are valid but not privileged enough to delete,\
+            \ which is the case for a temporary authentication token"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No processing result exists for the supplied id
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /v2.2/auth/tokens/{id}:
     get:
       tags:
