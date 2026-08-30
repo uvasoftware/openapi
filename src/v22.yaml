@@ -411,6 +411,65 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - Files
+      summary: Deletes the processing trace for a file
+      description: "Permanently deletes the processing trace for the supplied processing\
+        \ id, leaving the processing result itself untouched. A 404 means there was\
+        \ no trace to delete, which is also what a repeated delete of the same id\
+        \ returns."
+      operationId: deleteFileTrace
+      parameters:
+        - name: id
+          in: path
+          description: Processing id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Processing trace deleted
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+        "401":
+          description: "Bad credentials, the API key/secret combination is either\
+            \ invalid or unusable"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "The credentials are valid but not privileged enough to delete,\
+            \ which is the case for a temporary authentication token"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trace exists for the supplied id
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /v2.2/files/{id}:
     get:
       tags:
@@ -463,8 +522,12 @@ paths:
     delete:
       tags:
         - Files
-      summary: Hard deletes a previously created processing result and its trace
-      description: Permanently deletes the processing result and associated processing trace for the supplied id.
+      summary: Deletes a previously created processing result
+      description: "Permanently deletes the processing result for the supplied processing\
+        \ id. The processing trace is a separate resource and is **not** removed by\
+        \ this call — it stays readable at `/v2.2/files/{id}/trace` until you delete\
+        \ it there. To erase a scan entirely, delete both. A 404 means there was nothing\
+        \ to delete, which is also what a repeated delete of the same id returns."
       operationId: deleteFile
       parameters:
         - name: id
@@ -475,7 +538,7 @@ paths:
             type: string
       responses:
         "204":
-          description: Processing result and trace successfully deleted
+          description: Processing result deleted
           headers:
             X-Scanii-Request-Id:
               $ref: "#/components/headers/X-Scanii-Request-Id"
@@ -489,6 +552,33 @@ paths:
               $ref: "#/components/headers/X-Scanii-Request-Id"
             X-Scanii-Host-Id:
               $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "The credentials are valid but not privileged enough to delete,\
+            \ which is the case for a temporary authentication token"
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No processing result exists for the supplied id
+          headers:
+            X-Scanii-Request-Id:
+              $ref: "#/components/headers/X-Scanii-Request-Id"
+            X-Scanii-Host-Id:
+              $ref: "#/components/headers/X-Scanii-Host-Id"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /v2.2/auth/tokens/{id}:
     get:
       tags:
