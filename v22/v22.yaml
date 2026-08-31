@@ -8,10 +8,9 @@ info:
     \ Ireland, UK, Australia, Singapore — your data stays where you put it.\n* Stuck?\
     \ support@uvasoftware.com — a human replies, usually fast.\n\nWhat's new in 2.2:\n\
     \n  * `location` parameter on synchronous /files endpoints for region pinning\
-    \ on URL fetches.\n  * **Preview:** `GET /files/{id}/trace` returns an ordered\
-    \ event log for a processing \n    id — handy when you want to know *why* a finding\
-    \ fired (or didn't). API surface \n    may shift before it's marked stable; feedback\
-    \ welcome.\n\nImplementation notes:\n\n  * Metadata uses bracket-prefix form syntax:\
+    \ on URL fetches.\n  * `GET /files/{id}/trace` returns an ordered event log for a processing\
+    \ id — handy when you want to know *why* a finding fired (or didn't).\n  * `DELETE /files/{id}` and `DELETE /files/{id}/trace` remove a\
+    \ processing result and its trace independently.\n\nImplementation notes:\n\n  * Metadata uses bracket-prefix form syntax:\
     \ `metadata[key]=value` (e.g. \n    `metadata[user_id]=42`). Values come back\
     \ on the result payload so you can \n    correlate scans to your own records without\
     \ us storing anything.\n  * Heads up: most OpenAPI generators don't model the\
